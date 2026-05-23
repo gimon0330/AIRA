@@ -33,6 +33,20 @@ def parse_riot_id(riot_id: str) -> tuple[str, str]:
     return game_name, tag_line
 
 
+def parse_league_entries(payload: list[dict]) -> list[LeagueEntry]:
+    return [
+        LeagueEntry(
+            queue_type=entry["queueType"],
+            tier=entry["tier"],
+            rank=entry["rank"],
+            league_points=entry["leaguePoints"],
+            wins=entry["wins"],
+            losses=entry["losses"],
+        )
+        for entry in payload
+    ]
+
+
 def format_rank(entries: list[LeagueEntry], queue_type: str) -> str:
     entry = next((entry for entry in entries if entry.queue_type == queue_type), None)
     if entry is None:
@@ -75,6 +89,11 @@ class League(commands.Cog):
     async def cog_unload(self) -> None:
         await self.session.close()
 
+    async def get_league_entries_by_puuid(self, puuid: str) -> list[LeagueEntry]:
+        url = f"https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/{puuid}"
+        payload = await self.riot._get(url)
+        return parse_league_entries(payload)
+
     @app_commands.command(name="전적", description="Riot ID로 리그오브레전드 최근 전적을 조회합니다.")
     @app_commands.describe(riot_id="예: Hide on bush#KR1. 비워두면 즐겨찾기 소환사를 조회합니다.")
     @registered()
@@ -95,7 +114,7 @@ class League(commands.Cog):
             game_name, tag_line = parse_riot_id(target_riot_id)
             account = await self.riot.get_account_by_riot_id(game_name, tag_line)
             summoner = await self.riot.get_summoner_by_puuid(account.puuid)
-            entries = await self.riot.get_league_entries_by_puuid(account.puuid)
+            entries = await self.get_league_entries_by_puuid(account.puuid)
             match_ids = await self.riot.get_match_ids(account.puuid, count=5)
             matches = []
             for match_id in match_ids:
