@@ -6,9 +6,9 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
-from aira.config import Settings
-from aira.db import UserRole, build_user_repository
-from aira.webhook import GitHubWebhookServer
+from config import Settings
+from utils.db import UserRole, build_user_repository
+from utils.webhook import GitHubWebhookServer
 
 LOGGER = logging.getLogger(__name__)
 EXTENSIONS_DIR = Path(__file__).parent / "exts"
