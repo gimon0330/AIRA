@@ -55,6 +55,17 @@ def format_match_line(match: MatchSummary) -> str:
     )
 
 
+async def safe_defer(interaction: discord.Interaction) -> bool:
+    if interaction.response.is_done():
+        return True
+    try:
+        await interaction.response.defer(thinking=True)
+        return True
+    except discord.NotFound:
+        LOGGER.warning("Interaction expired before defer")
+        return False
+
+
 class League(commands.Cog):
     def __init__(self, bot: AiraBot) -> None:
         self.bot = bot
@@ -68,10 +79,11 @@ class League(commands.Cog):
     @app_commands.describe(riot_id="예: Hide on bush#KR1. 비워두면 즐겨찾기 소환사를 조회합니다.")
     @registered()
     async def record(self, interaction: discord.Interaction, riot_id: str | None = None) -> None:
-        await interaction.response.defer(thinking=True)
+        if not await safe_defer(interaction):
+            return
 
         try:
-            user = await self.bot.users.get_user(interaction.user.id)
+            user = await self.bot.user_repository.get_user(interaction.user.id)
             target_riot_id = riot_id.strip() if riot_id else user.favorite_riot_id if user else None
             if not target_riot_id:
                 await interaction.followup.send(
