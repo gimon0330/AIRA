@@ -9,8 +9,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from aira.bot import AiraBot
-from aira.checks import registered, require_role
-from aira.db import UserRole
+from utils.command_checks import registered, require_role
+from utils.db import UserRole
 
 START_TIME = datetime.datetime.now(datetime.UTC)
 EMBED_COLOR = 0xCCFFFF
