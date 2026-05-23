@@ -17,7 +17,7 @@ class RegisterView(discord.ui.View):
             await interaction.response.send_message("유저 정보를 확인할 수 없습니다.", ephemeral=True)
             return
 
-        await self.bot.users.upsert_user(interaction.user.id)
+        await self.bot.user_repository.upsert_user(interaction.user.id)
         await interaction.response.send_message(
             "가입이 완료되었습니다. 이제 명령어를 다시 사용할 수 있습니다.",
             ephemeral=True,
@@ -25,7 +25,7 @@ class RegisterView(discord.ui.View):
 
 
 async def ensure_registered(interaction: discord.Interaction) -> bool:
-    user = await interaction.client.users.get_user(interaction.user.id)
+    user = await interaction.client.user_repository.get_user(interaction.user.id)
     if user is not None:
         return True
 
@@ -43,7 +43,7 @@ def registered() -> app_commands.Check:
 
 def require_role(minimum_role: UserRole) -> app_commands.Check:
     async def predicate(interaction: discord.Interaction) -> bool:
-        user = await interaction.client.users.get_user(interaction.user.id)
+        user = await interaction.client.user_repository.get_user(interaction.user.id)
         if user is None:
             await ensure_registered(interaction)
             return False
