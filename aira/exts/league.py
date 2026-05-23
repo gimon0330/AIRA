@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 
 import aiohttp
 import discord
@@ -69,6 +70,17 @@ def format_match_line(match: MatchSummary) -> str:
     )
 
 
+def format_most_played_champions(matches: list[MatchSummary]) -> str:
+    champion_counts = Counter(match.champion_name for match in matches)
+    if not champion_counts:
+        return "최근 매치를 찾지 못했습니다."
+
+    return "\n".join(
+        f"{rank}. {champion} · {count}판"
+        for rank, (champion, count) in enumerate(champion_counts.most_common(3), start=1)
+    )
+
+
 async def safe_defer(interaction: discord.Interaction) -> bool:
     if interaction.response.is_done():
         return True
@@ -115,7 +127,7 @@ class League(commands.Cog):
             account = await self.riot.get_account_by_riot_id(game_name, tag_line)
             summoner = await self.riot.get_summoner_by_puuid(account.puuid)
             entries = await self.get_league_entries_by_puuid(account.puuid)
-            match_ids = await self.riot.get_match_ids(account.puuid, count=5)
+            match_ids = await self.riot.get_match_ids(account.puuid, count=20)
             matches = []
             for match_id in match_ids:
                 matches.append(await self.riot.get_match_summary(match_id, account.puuid))
@@ -136,12 +148,13 @@ class League(commands.Cog):
 
         profile_icon_id = summoner.get("profileIconId", 0)
         summoner_level = summoner.get("summonerLevel", 0)
-        win_count = sum(1 for match in matches if match.win)
+        recent_matches = matches[:5]
+        win_count = sum(1 for match in recent_matches if match.win)
 
         embed = discord.Embed(
             title=f"{account.game_name}#{account.tag_line}",
             description=(
-                f"최근 {len(matches)}게임 {win_count}승 {len(matches) - win_count}패\n"
+                f"최근 {len(recent_matches)}게임 {win_count}승 {len(recent_matches) - win_count}패\n"
                 f"소환사 레벨 {summoner_level}"
             ),
             color=0x7DD3FC,
@@ -155,8 +168,13 @@ class League(commands.Cog):
         embed.add_field(name="솔로랭크", value=format_rank(entries, "RANKED_SOLO_5x5"), inline=False)
         embed.add_field(name="자유랭크", value=format_rank(entries, "RANKED_FLEX_SR"), inline=False)
         embed.add_field(
+            name="최근 20판 모스트 챔피언",
+            value=format_most_played_champions(matches),
+            inline=False,
+        )
+        embed.add_field(
             name="최근 게임",
-            value="\n".join(format_match_line(match) for match in matches) or "최근 매치를 찾지 못했습니다.",
+            value="\n".join(format_match_line(match) for match in recent_matches) or "최근 매치를 찾지 못했습니다.",
             inline=False,
         )
         embed.set_footer(text="Riot API · KR/ASIA routing")
