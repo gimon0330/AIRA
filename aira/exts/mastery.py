@@ -10,9 +10,9 @@ from discord import app_commands
 from discord.ext import commands
 
 from aira.bot import AiraBot
-from aira.checks import registered
 from aira.exts.league import parse_riot_id, safe_defer
-from aira.riot import RiotApiError, RiotClient
+from utils.command_checks import registered
+from utils.riot import RiotApiError, RiotClient
 
 LOGGER = logging.getLogger(__name__)
 
