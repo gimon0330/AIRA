@@ -8,6 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from aira.bot import AiraBot
+from aira.checks import registered
 from aira.riot import LeagueEntry, MatchSummary, RiotApiError, RiotClient
 
 LOGGER = logging.getLogger(__name__)
@@ -64,15 +65,25 @@ class League(commands.Cog):
         await self.session.close()
 
     @app_commands.command(name="전적", description="Riot ID로 리그오브레전드 최근 전적을 조회합니다.")
-    @app_commands.describe(riot_id="예: Hide on bush#KR1")
-    async def record(self, interaction: discord.Interaction, riot_id: str) -> None:
+    @app_commands.describe(riot_id="예: Hide on bush#KR1. 비워두면 즐겨찾기 소환사를 조회합니다.")
+    @registered()
+    async def record(self, interaction: discord.Interaction, riot_id: str | None = None) -> None:
         await interaction.response.defer(thinking=True)
 
         try:
-            game_name, tag_line = parse_riot_id(riot_id)
+            user = await self.bot.users.get_user(interaction.user.id)
+            target_riot_id = riot_id.strip() if riot_id else user.favorite_riot_id if user else None
+            if not target_riot_id:
+                await interaction.followup.send(
+                    "조회할 Riot ID가 없습니다. `/즐겨찾기 riot_id: Hide on bush#KR1`로 즐겨찾기를 먼저 저장하거나 `/전적 riot_id: ...`로 직접 입력해주세요.",
+                    ephemeral=True,
+                )
+                return
+
+            game_name, tag_line = parse_riot_id(target_riot_id)
             account = await self.riot.get_account_by_riot_id(game_name, tag_line)
             summoner = await self.riot.get_summoner_by_puuid(account.puuid)
-            entries = await self.riot.get_league_entries(summoner["id"])
+            entries = await self.riot.get_league_entries_by_puuid(account.puuid)
             match_ids = await self.riot.get_match_ids(account.puuid, count=5)
             matches = []
             for match_id in match_ids:
