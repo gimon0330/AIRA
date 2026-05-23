@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import re
 from dataclasses import dataclass
@@ -13,11 +12,9 @@ from discord import app_commands
 from discord.ext import commands
 
 from aira.bot import AiraBot
-from aira.checks import registered
+from utils.command_checks import registered
 
 LOGGER = logging.getLogger(__name__)
-
-ROLE_DEFAULT = "overall"
 
 
 @dataclass(frozen=True)
