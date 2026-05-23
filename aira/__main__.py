@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from aira.bot import AiraBot
-from aira.config import load_settings
+from config import load_settings
 
 logging.basicConfig(
     level=logging.INFO,
