@@ -40,6 +40,9 @@ class UserRepository:
     async def get_user(self, discord_id: int) -> DiscordUser | None:
         raise NotImplementedError
 
+    async def count_users(self) -> int:
+        raise NotImplementedError
+
     async def create_user(self, discord_id: int, role: UserRole = UserRole.USER) -> DiscordUser:
         raise NotImplementedError
 
@@ -97,6 +100,10 @@ class PostgresUserRepository(UserRepository):
             discord_id,
         )
         return self._from_record(record)
+
+    async def count_users(self) -> int:
+        assert self.pool is not None
+        return int(await self.pool.fetchval("SELECT COUNT(*) FROM discord_users"))
 
     async def create_user(self, discord_id: int, role: UserRole = UserRole.USER) -> DiscordUser:
         assert self.pool is not None
@@ -191,6 +198,12 @@ class SqliteUserRepository(UserRepository):
             (discord_id,),
         ) as cursor:
             return self._from_row(await cursor.fetchone())
+
+    async def count_users(self) -> int:
+        assert self.conn is not None
+        async with self.conn.execute("SELECT COUNT(*) AS count FROM discord_users") as cursor:
+            row = await cursor.fetchone()
+            return int(row["count"])
 
     async def create_user(self, discord_id: int, role: UserRole = UserRole.USER) -> DiscordUser:
         assert self.conn is not None
